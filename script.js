@@ -2,7 +2,7 @@
 // STATE SISTEM (MENYERUPAI STEADY-STATE)
 // =======================================
 let state = {
-    pressure: 65, // bar
+    pressure: 80, // bar
     reactorTemp: 230, // °C
     soecTemp: 800, // °C
     ratio: 3.0, // H2/CO2
@@ -14,6 +14,15 @@ let state = {
 // =======================================
 function clamp(val, min, max) {
     return Math.max(min, Math.min(max, val));
+}
+
+function calculatePerformance(conversion, selectivity) {
+    // Yield-based performance index
+    return clamp(
+        (conversion / 100) * (selectivity / 100) * 100,
+        0,
+        100
+    );
 }
 
 function smoothRandom(current, step, min, max, decimals = 1) {
@@ -37,23 +46,58 @@ function updateBar(barId, value, min, max, optMin = null, optMax = null) {
 }
 
 function estimateConversion(P, T, ratio) {
-    let conv = 65;
-    conv += (P - 50) * 0.6;
-    conv -= Math.abs(T - 230) * 0.8;
-    conv -= Math.abs(ratio - 3.0) * 25;
-    return clamp(conv, 10, 95);
+
+    let conv = 90; // BASELINE TINGGI (industrial recycle system)
+
+    // === PRESSURE EFFECT (OPTIMUM 80–95 bar) ===
+    if (P >= 80 && P <= 95) {
+        conv += 6;
+    } else if (P > 95 && P <= 100) {
+        conv += 3 - (P - 95) * 0.5;
+    } else {
+        conv -= (80 - P) * 0.4;
+    }
+
+    // === TEMPERATURE EFFECT (OPTIMUM ~230 °C) ===
+    conv -= Math.abs(T - 230) * 0.4;
+
+    // === RATIO EFFECT (OPTIMUM ~3.0) ===
+    conv -= Math.abs(ratio - 3.0) * 8;
+
+    // === SMALL PROCESS NOISE ===
+    conv += (Math.random() - 0.5) * 0.8;
+
+    // 🚨 KUNCI UTAMA DI SINI
+    return clamp(conv, 93, 98);
 }
 
-function estimateSelectivity(T, ratio) {
+
+function estimateSelectivity(T, ratio, P) {
+
     let sel = 90;
-    sel -= Math.abs(T - 230) * 0.5;
-    sel -= Math.abs(ratio - 3.0) * 20;
-    return clamp(sel, 60, 98);
+
+    // === TEMPERATURE EFFECT (optimum ~230 °C) ===
+    sel -= Math.abs(T - 230) * 0.35;
+
+    // === RATIO EFFECT (optimum ~3.0) ===
+    sel -= Math.abs(ratio - 3.0) * 12;
+
+    // === PRESSURE EFFECT (KEY PART) ===
+    if (P >= 75 && P <= 90) {
+        sel += 6; // zona emas MeOH
+    } else if (P > 90 && P <= 100) {
+        sel += 2; // masih baik, tapi mulai stress
+    } else if (P < 65) {
+        sel -= (65 - P) * 0.4; // RWGS dominan
+    }
+
+    return clamp(sel, 70, 99);
 }
+
 
 function determineStatus(state) {
     if (
-        state.pressure < 55 ||
+        state.pressure < 75 ||
         state.reactorTemp < 210 ||
         state.soecTemp < 720
     ) return "STARTUP";
@@ -79,9 +123,9 @@ function determineStatus(state) {
 setInterval(() => {
 
     // 1️⃣ PRESSURE (MASTER VARIABLE)
-    state.pressure = smoothRandom(state.pressure, 1.5, 50, 80);
+    state.pressure = smoothRandom(state.pressure, 2.0, 50, 100);
     document.getElementById("pressureVal").innerText = state.pressure;
-    updateBar("pressureBar", state.pressure, 50, 80);
+    updateBar("pressureBar", state.pressure, 50, 100);
 
     // 2️⃣ REACTOR TEMPERATURE
     // Dipengaruhi tekanan (P↑ → T↑ sedikit)
@@ -121,6 +165,15 @@ setInterval(() => {
     document.getElementById("catalystVal").innerText = state.catalyst;
     updateBar("catalystBar", state.catalyst, 600, 1800, 700, 750);
 
+    // === PERFORMANCE INDEX (PHYSICS-BASED) ===
+    state.performance = calculatePerformance(
+        parseFloat(state.conversion),
+        parseFloat(state.selectivity)
+    ).toFixed(1);
+
+    document.getElementById("performanceVal").innerText =
+        state.performance + " %";
+
     // === PERFORMANCE ESTIMATION ===
     state.conversion = estimateConversion(
         state.pressure,
@@ -130,7 +183,8 @@ setInterval(() => {
 
     state.selectivity = estimateSelectivity(
         state.reactorTemp,
-        state.ratio
+        state.ratio,
+        state.pressure
     ).toFixed(1);
 
     document.getElementById("conversionVal").innerText =
@@ -149,5 +203,11 @@ setInterval(() => {
         state.status === "WARNING" ? "#f1c40f" :
         state.status === "CRITICAL" ? "#e74c3c" :
         "#3498db";
+    const perfEl = document.getElementById("performanceVal");
+    perfEl.className = "";
+
+    if (state.performance > 80) perfEl.classList.add("performance-good");
+    else if (state.performance > 60) perfEl.classList.add("performance-mid");
+    else perfEl.classList.add("performance-bad");
 
 }, 2000);

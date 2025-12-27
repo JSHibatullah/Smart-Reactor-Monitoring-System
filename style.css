@@ -2,9 +2,29 @@
    GLOBAL
 ================================ */
 
+html,
+body {
+    height: 100%;
+    margin: 0;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    overscroll-behavior: none;
+}
+
+body {
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+html {
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+}
+
+body {
+    background: transparent;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, sans-serif;
-    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
     color: #fff;
     text-align: center;
     margin: 0;
@@ -120,6 +140,18 @@ small {
     box-shadow: 0 0 12px rgba(46, 204, 113, 0.9);
 }
 
+.performance-good {
+    color: #2ecc71;
+}
+
+.performance-mid {
+    color: #f1c40f;
+}
+
+.performance-bad {
+    color: #e74c3c;
+}
+
 
 /* ===============================
    STATUS & PERFORMANCE CARD
@@ -170,6 +202,23 @@ small {
     100% {
         opacity: 0.6;
     }
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0f2027;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #ceeaf3, #aac0c9);
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #2c5364;
 }
 
 .status-critical {

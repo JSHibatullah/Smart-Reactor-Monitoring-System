@@ -68,7 +68,7 @@ function estimateConversion(P, T, ratio) {
     conv += (Math.random() - 0.5) * 0.8;
 
     // 🚨 KUNCI UTAMA DI SINI
-    return clamp(conv, 93, 98);
+    return clamp(conv, 90, 98);
 }
 
 
